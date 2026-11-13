@@ -51,10 +51,12 @@ Saved traces of both programs are in [`output/`](output/).
 | --- | --- |
 | `PC>` | Next instruction to be fetched |
 | `SP>` | Top of the stack (most recently pushed item) |
-| `*` | Cell changed by the instruction just executed |
+| `*` | Changed by the instruction just executed — on RAM cells, registers, SP and individual flags (e.g. `R1 =0007*`, `C=1*`) |
 | Contents | Text segment: decoded instruction · Data segment: value |
 
-Below each memory block: registers R0–R15 (hex), PC, IR, SP and the flags Z, N, C, V.
+Below each memory block: registers R0–R15 (hex), PC, IR, SP and the flags Z, N, C, V. PC and IR change on every step, so they are never marked.
+
+Every trace starts with a 3-line legend explaining these marks and the flags, so the output reads on its own.
 
 ## Repository layout
 

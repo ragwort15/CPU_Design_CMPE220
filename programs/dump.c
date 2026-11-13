@@ -2,6 +2,7 @@
  *  dump.c  —  memory / register printouts for the CPU simulator (see dump.h)
  * ==========================================================================*/
 #include <stdio.h>
+#include <string.h>
 
 #include "dump.h"
 
@@ -85,21 +86,59 @@ static void print_memory(const CPU *cpu, const uint8_t *changed) {
     }
 }
 
-/* R0..R15 in two rows, then PC, IR, SP and the flags. */
-static void print_registers(const CPU *cpu) {
+/* Registers, SP and flags as they were after the previous printout, so the
+ * next step can mark what changed. PC and IR change on every instruction,
+ * so they are never marked. */
+static struct {
+    uint16_t r[NREG];
+    int      sp;
+    uint8_t  flags;
+} prev;
+
+static void remember(const CPU *cpu) {
+    memcpy(prev.r, cpu->r, sizeof prev.r);
+    prev.sp = cpu->sp;
+    prev.flags = cpu->flags;
+}
+
+/* '*' if `changed` and marking is on, else ' ' (keeps columns aligned). */
+static char star(int mark, int changed) { return (mark && changed) ? '*' : ' '; }
+
+/* R0..R15 in two rows, then PC, IR, SP and the flags.
+ * With mark = 1, every register, SP and flag that changed since the previous
+ * printout gets a '*' after it, e.g.  R2 =0007*   C=1*  */
+static void print_registers(const CPU *cpu, int mark) {
     for (int row = 0; row < 2; row++) {
-        for (int i = row * 8; i < row * 8 + 8; i++) printf(" R%-2d=%04X", i, cpu->r[i]);
+        for (int i = row * 8; i < row * 8 + 8; i++)
+            printf(" R%-2d=%04X%c", i, cpu->r[i], star(mark, cpu->r[i] != prev.r[i]));
         printf("\n");
     }
-    printf(" PC=0x%02X  IR=0x%04X  SP=0x%02X  FLAGS: Z=%d N=%d C=%d V=%d\n", cpu->pc, cpu->ir,
-           cpu->sp, cpu_flag(cpu, F_Z), cpu_flag(cpu, F_N), cpu_flag(cpu, F_C), cpu_flag(cpu, F_V));
+
+    static const struct { char name; int bit; } FLAG[] = {
+        {'Z', F_Z}, {'N', F_N}, {'C', F_C}, {'V', F_V}};
+    printf(" PC=0x%02X  IR=0x%04X  SP=0x%02X%c FLAGS:", cpu->pc, cpu->ir, cpu->sp,
+           star(mark, cpu->sp != prev.sp));
+    for (int k = 0; k < 4; k++)
+        printf(" %c=%d%c", FLAG[k].name, cpu_flag(cpu, FLAG[k].bit),
+               star(mark, (cpu->flags ^ prev.flags) & FLAG[k].bit));
+    printf("\n");
+    remember(cpu);
+}
+
+/* Printed once at the top of every trace, so the output explains itself. */
+static void print_legend(void) {
+    printf(" Legend: PC> next instruction   SP> top of stack   * changed by last step\n");
+    printf(" Flags : Z zero   N negative   C carry/borrow   V signed overflow\n");
+    printf(" Values: text = decoded instruction; data/stack = value (signed if < 0)\n");
 }
 
 void dump_loaded(const CPU *cpu, const char *program_name) {
     printf("%s\n Program: %s  (loaded, before execution)\n%s\n", LINE, program_name, LINE);
+    print_legend();
+    printf("\n");
     print_memory(cpu, NULL);
     printf("\n");
-    print_registers(cpu);
+    print_registers(cpu, 0);
     printf("\n");
 }
 
@@ -110,7 +149,7 @@ void dump_step(const CPU *cpu, const StepInfo *info) {
            info->addr, text, info->word, LINE);
     print_memory(cpu, info->changed);
     printf("\n");
-    print_registers(cpu);
+    print_registers(cpu, 1);
     printf("\n");
 }
 
@@ -118,5 +157,5 @@ void dump_final(const CPU *cpu) {
     printf("%s\n HALT after %ld instructions - final state\n%s\n", LINE, cpu->steps, LINE);
     print_memory(cpu, NULL);
     printf("\n");
-    print_registers(cpu);
+    print_registers(cpu, 0);
 }
