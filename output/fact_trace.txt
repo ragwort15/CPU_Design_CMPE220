@@ -1,9 +1,9 @@
 ==============================================================================
  Program: programs/fact.asm  (loaded, before execution)
 ==============================================================================
- Legend: PC> next instruction   SP> top of stack   * changed by last step
- Flags : Z zero   N negative   C carry/borrow   V signed overflow
- Values: text = decoded instruction; data/stack = value (signed if < 0)
+ Legend:  PC> next instruction   SP> top of stack   * changed by the last instruction
+          Contents = decoded instruction (text) or value (data/stack)
+          Registers in hex; FLAGS Z=zero N=negative C=carry V=overflow
 
      Addr  Seg    Hex     Binary               Contents
  ------------------------------------------------------------------------
