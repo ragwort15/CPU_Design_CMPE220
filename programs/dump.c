@@ -2,6 +2,7 @@
  *  dump.c  —  memory / register printouts for the CPU simulator (see dump.h)
  * ==========================================================================*/
 #include <stdio.h>
+#include <string.h>
 
 #include "dump.h"
 
